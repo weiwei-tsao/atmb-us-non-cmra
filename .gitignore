@@ -4,3 +4,6 @@
 .env
 cache/
 .DS_Store
+
+.gitignore
+result/**/*.log

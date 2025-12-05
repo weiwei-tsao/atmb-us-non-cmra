@@ -18651,3 +18651,86 @@ Location:
 
 Backtrace omitted. Run with RUST_BACKTRACE=1 environment variable to display it.
 Run with RUST_BACKTRACE=full to include source snippets.    
+2025-12-05T14:46:26.870702Z  INFO atmb_us_physical::atmb: Loaded mailboxes from cache    
+2025-12-05T14:46:26.873883Z  INFO atmb_us_physical: finished fetching, got [15] mailboxes in total    
+2025-12-05T14:46:26.873893Z  INFO atmb_us_physical: begin to inquire mailbox address info...    
+2025-12-05T14:46:26.880118Z  INFO atmb_us_physical::smarty: Loaded [3] Smarty credential(s)    
+2025-12-05T14:46:26.880141Z  INFO atmb_us_physical: [1/15] fetching mailbox address info for [Bessemer]    
+2025-12-05T14:46:26.880147Z  INFO atmb_us_physical::smarty: Smarty using client [0:86b4b3]    
+2025-12-05T14:46:26.881731Z  INFO atmb_us_physical: [2/15] fetching mailbox address info for [Birmingham - 19th St]    
+2025-12-05T14:46:26.881740Z  INFO atmb_us_physical::smarty: Smarty using client [1:ee8a58]    
+2025-12-05T14:46:26.881803Z  INFO atmb_us_physical: [3/15] fetching mailbox address info for [Birmingham - 1st Ave]    
+2025-12-05T14:46:26.881811Z  INFO atmb_us_physical::smarty: Smarty using client [2:4a199b]    
+2025-12-05T14:46:27.032373Z  INFO atmb_us_physical: [4/15] fetching mailbox address info for [Birmingham - Gadsden Hwy]    
+2025-12-05T14:46:27.032388Z  INFO atmb_us_physical::smarty: Smarty using client [0:86b4b3]    
+2025-12-05T14:46:27.838174Z  WARN atmb_us_physical::utils: retrying for the 2 time    
+2025-12-05T14:46:28.062840Z  WARN atmb_us_physical::utils: retrying for the 2 time    
+2025-12-05T14:46:28.554622Z  WARN atmb_us_physical::utils: retrying for the 2 time    
+2025-12-05T14:46:28.759243Z  WARN atmb_us_physical::utils: retrying for the 3 time    
+2025-12-05T14:46:29.196202Z  WARN atmb_us_physical::utils: retrying for the 3 time    
+2025-12-05T14:46:29.851672Z  WARN atmb_us_physical::utils: retrying for the 3 time    
+2025-12-05T14:46:31.390114Z  WARN atmb_us_physical::utils: retrying for the 4 time    
+2025-12-05T14:46:31.420416Z  WARN atmb_us_physical::smarty: Smarty client [0] failed: 
+   0: [91msmarty http error: 402 Payment Required - {"errors":[{"id":1588026162,"message":"Active subscription required (1588026162): The optional license value supplied (if any) was valid and understood, but the account does not have the necessary active subscription to allow this operation to continue."}]}[0m
+
+Location:
+   [35msrc/smarty.rs[0m:[35m213[0m
+
+Backtrace omitted. Run with RUST_BACKTRACE=1 environment variable to display it.
+Run with RUST_BACKTRACE=full to include source snippets.    
+2025-12-05T14:46:31.420464Z  INFO atmb_us_physical::smarty: Smarty using client [1:ee8a58]    
+2025-12-05T14:46:31.453869Z  INFO atmb_us_physical: [5/15] fetching mailbox address info for [Enterprise]    
+2025-12-05T14:46:31.453888Z  INFO atmb_us_physical::smarty: Smarty using client [2:4a199b]    
+2025-12-05T14:46:31.486778Z  WARN atmb_us_physical::utils: retrying for the 4 time    
+2025-12-05T14:46:31.513981Z  WARN atmb_us_physical::smarty: Smarty client [2] failed: 
+   0: [91msmarty http error: 402 Payment Required - {"errors":[{"id":1588026162,"message":"Active subscription required (1588026162): The optional license value supplied (if any) was valid and understood, but the account does not have the necessary active subscription to allow this operation to continue."}]}[0m
+
+Location:
+   [35msrc/smarty.rs[0m:[35m213[0m
+
+Backtrace omitted. Run with RUST_BACKTRACE=1 environment variable to display it.
+Run with RUST_BACKTRACE=full to include source snippets.    
+2025-12-05T14:46:31.514002Z  INFO atmb_us_physical::smarty: Smarty using client [1:ee8a58]    
+2025-12-05T14:46:31.544390Z  INFO atmb_us_physical: [6/15] fetching mailbox address info for [Huntsville]    
+2025-12-05T14:46:31.544407Z  INFO atmb_us_physical::smarty: Smarty using client [1:ee8a58]    
+2025-12-05T14:46:31.576401Z  INFO atmb_us_physical: [7/15] fetching mailbox address info for [Madison]    
+2025-12-05T14:46:31.576425Z  INFO atmb_us_physical::smarty: Smarty using client [1:ee8a58]    
+2025-12-05T14:46:31.610086Z  INFO atmb_us_physical: [8/15] fetching mailbox address info for [Mobile - Downtowner Loop]    
+2025-12-05T14:46:31.610105Z  INFO atmb_us_physical::smarty: Smarty using client [1:ee8a58]    
+2025-12-05T14:46:31.642118Z  INFO atmb_us_physical: [9/15] fetching mailbox address info for [Montgomery - Woodmere Blvd]    
+2025-12-05T14:46:31.642134Z  INFO atmb_us_physical::smarty: Smarty using client [1:ee8a58]    
+2025-12-05T14:46:31.673742Z  INFO atmb_us_physical: [10/15] fetching mailbox address info for [Theodore]    
+2025-12-05T14:46:31.673760Z  INFO atmb_us_physical::smarty: Smarty using client [1:ee8a58]    
+2025-12-05T14:46:31.704901Z  INFO atmb_us_physical: [11/15] fetching mailbox address info for [Trussville]    
+2025-12-05T14:46:31.704916Z  INFO atmb_us_physical::smarty: Smarty using client [1:ee8a58]    
+2025-12-05T14:46:31.736854Z  INFO atmb_us_physical: [12/15] fetching mailbox address info for [Tuscaloosa]    
+2025-12-05T14:46:31.736869Z  INFO atmb_us_physical::smarty: Smarty using client [1:ee8a58]    
+2025-12-05T14:46:31.767882Z  INFO atmb_us_physical: [13/15] fetching mailbox address info for [Anchorage - 5th Ave]    
+2025-12-05T14:46:31.767902Z  INFO atmb_us_physical::smarty: Smarty using client [1:ee8a58]    
+2025-12-05T14:46:31.798884Z  INFO atmb_us_physical: [14/15] fetching mailbox address info for [Anchorage - Dimond Blvd]    
+2025-12-05T14:46:31.798901Z  INFO atmb_us_physical::smarty: Smarty using client [1:ee8a58]    
+2025-12-05T14:46:31.832129Z  INFO atmb_us_physical: [15/15] fetching mailbox address info for [Wasilla]    
+2025-12-05T14:46:31.832145Z  INFO atmb_us_physical::smarty: Smarty using client [1:ee8a58]    
+2025-12-05T14:46:31.836783Z  WARN atmb_us_physical::utils: retrying for the 4 time    
+2025-12-05T14:46:31.866811Z  WARN atmb_us_physical::smarty: Smarty client [0] failed: 
+   0: [91msmarty http error: 402 Payment Required - {"errors":[{"id":1588026162,"message":"Active subscription required (1588026162): The optional license value supplied (if any) was valid and understood, but the account does not have the necessary active subscription to allow this operation to continue."}]}[0m
+
+Location:
+   [35msrc/smarty.rs[0m:[35m213[0m
+
+Backtrace omitted. Run with RUST_BACKTRACE=1 environment variable to display it.
+Run with RUST_BACKTRACE=full to include source snippets.    
+2025-12-05T14:46:31.866829Z  INFO atmb_us_physical::smarty: Smarty using client [1:ee8a58]    
+2025-12-05T14:46:32.177644Z  WARN atmb_us_physical::utils: retrying for the 2 time    
+2025-12-05T14:46:34.412098Z  WARN atmb_us_physical::utils: retrying for the 3 time    
+2025-12-05T14:46:36.121572Z  WARN atmb_us_physical::utils: retrying for the 4 time    
+2025-12-05T14:46:36.151176Z  WARN atmb_us_physical::smarty: Smarty client [2] failed: 
+   0: [91msmarty http error: 402 Payment Required - {"errors":[{"id":1588026162,"message":"Active subscription required (1588026162): The optional license value supplied (if any) was valid and understood, but the account does not have the necessary active subscription to allow this operation to continue."}]}[0m
+
+Location:
+   [35msrc/smarty.rs[0m:[35m213[0m
+
+Backtrace omitted. Run with RUST_BACKTRACE=1 environment variable to display it.
+Run with RUST_BACKTRACE=full to include source snippets.    
+2025-12-05T14:46:36.151215Z  INFO atmb_us_physical::smarty: Smarty using client [1:ee8a58]    
+2025-12-05T14:46:36.183829Z  INFO atmb_us_physical: saving records to [result/mailboxes.csv]    
