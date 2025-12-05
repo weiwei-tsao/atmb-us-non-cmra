@@ -69,6 +69,7 @@ dependencies = [
  "reqwest 0.12.9",
  "scraper",
  "serde",
+ "serde_json",
  "smarty-rust-sdk",
  "tokio",
  "tracing",

@@ -5,6 +5,7 @@ use scraper::{Html, Selector};
 use crate::atmb::model::{Address, Mailbox};
 
 static STATE_LIST_REG: LazyLock<Regex> = LazyLock::new(|| Regex::new(r#"<a class='theme-simple-link' href='(.*?)'>(.*?)</a>"#).unwrap());
+static MAP_OBJECT_REG: LazyLock<Regex> = LazyLock::new(|| Regex::new(r#"var map_object = (?P<json>\{.*?\});"#).unwrap());
 
 static LOCATION_CONTAINER_SELECTOR: LazyLock<Selector> = LazyLock::new(|| Selector::parse(r#"div[class="theme-location-item"]"#).unwrap());
 static LOCATION_TITLE_SELECTOR: LazyLock<Selector> = LazyLock::new(|| Selector::parse(r#"h3[class="t-title"]"#).unwrap());
@@ -185,16 +186,16 @@ pub struct LocationDetailPage {
 impl LocationDetailPage {
     pub fn parse_html(html: &str) -> color_eyre::Result<Self> {
         let document = Html::parse_document(html);
-        let address_container = document
-            .select(&LOCATION_DETAIL_SELECTOR)
-            .next()
-            .ok_or_else(|| eyre!("No address container found, page structure might be changed"))?;
-        let div_selector = Selector::parse("div").unwrap();
-
-        let lines = address_container.select(&div_selector)
-            .map(|div| div.text().collect::<String>())
-            .filter(|s| !s.is_empty())
-            .collect::<Vec<_>>();
+        let lines = if let Some(address_container) = document.select(&LOCATION_DETAIL_SELECTOR).next() {
+            let div_selector = Selector::parse("div").unwrap();
+            address_container.select(&div_selector)
+                .map(|div| div.text().collect::<String>())
+                .filter(|s| !s.is_empty())
+                .collect::<Vec<_>>()
+        } else {
+            // Fallback: parse address from map_object JSON embedded in the page
+            Self::extract_from_map_object(html)?
+        };
 
         let line2 = match lines.len() {
             // no line2
@@ -212,6 +213,28 @@ impl LocationDetailPage {
                 line2,
             }
         )
+    }
+
+    fn extract_from_map_object(html: &str) -> color_eyre::Result<Vec<String>> {
+        let caps = MAP_OBJECT_REG.captures(html)
+            .ok_or_else(|| eyre!("No address container found, page structure might be changed"))?;
+        let json_str = caps.name("json").unwrap().as_str();
+        #[derive(serde::Deserialize)]
+        struct MapObj {
+            #[serde(rename = "mapData")]
+            map_data: MapData,
+        }
+        #[derive(serde::Deserialize)]
+        struct MapData {
+            #[serde(rename = "foraddss")]
+            for_add_ss: String,
+        }
+        let obj: MapObj = serde_json::from_str(json_str)?;
+        let lines = obj.map_data.for_add_ss.split("<br>")
+            .filter(|s: &&str| !s.is_empty())
+            .map(|s: &str| s.replace("<br/>", "").replace("<br />", ""))
+            .collect::<Vec<_>>();
+        Ok(lines)
     }
 
     /// concatenate line1 and line2

@@ -7,7 +7,7 @@ use crate::atmb::model::Mailbox;
 use crate::atmb::page::{CountryPage, LocationDetailPage, StatePage};
 use crate::utils::retry_wrapper;
 
-mod page;
+pub mod page;
 pub mod model;
 
 const BASE_URL: &str = "https://www.anytimemailbox.com";

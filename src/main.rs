@@ -3,15 +3,10 @@ use std::path::Path;
 use std::sync::OnceLock;
 use futures::StreamExt;
 use log::{error, info};
-use crate::atmb::ATMBCrawl;
-use crate::atmb::model::Mailbox;
-use crate::record::Record;
-use crate::smarty::{AdditionalInfo, SmartyClientProxy};
-
-mod atmb;
-mod record;
-mod smarty;
-mod utils;
+use atmb_us_physical::atmb::ATMBCrawl;
+use atmb_us_physical::atmb::model::Mailbox;
+use atmb_us_physical::record::Record;
+use atmb_us_physical::smarty::{AdditionalInfo, SmartyClientProxy};
 
 static LOG_GUARD: OnceLock<tracing_appender::non_blocking::WorkerGuard> = OnceLock::new();
 
