@@ -68,7 +68,8 @@ async fn main() {
 
 async fn run() -> color_eyre::Result<()> {
     let atmb = ATMBCrawl::new()?;
-    let mailboxes = atmb.fetch().await?;
+    let crawl_result = atmb.fetch().await?;
+    let mailboxes = crawl_result.mailboxes;
 
     info!("finished fetching, got [{}] mailboxes in total", mailboxes.len());
     info!("begin to inquire mailbox address info...");

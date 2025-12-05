@@ -63,6 +63,19 @@ pub struct ATMBCrawl {
     client: ATMBClient,
 }
 
+#[derive(Debug, Clone)]
+pub struct CrawlWarning {
+    pub name: String,
+    pub link: String,
+    pub reason: String,
+}
+
+#[derive(Debug)]
+pub struct CrawlResult {
+    pub mailboxes: Vec<Mailbox>,
+    pub warnings: Vec<CrawlWarning>,
+}
+
 impl ATMBCrawl {
     pub fn new() -> color_eyre::Result<Self> {
         Ok(
@@ -72,7 +85,7 @@ impl ATMBCrawl {
         )
     }
 
-    pub async fn fetch(&self) -> color_eyre::Result<Vec<Mailbox>> {
+    pub async fn fetch(&self) -> color_eyre::Result<CrawlResult> {
         // we're only interested in US, so hardcode here.
         let country_html = self.client.fetch_page(US_HOME_PAGE_URL).await?;
         let country_page = CountryPage::parse_html(&country_html)?;
@@ -101,25 +114,19 @@ impl ATMBCrawl {
         })
     }
 
-    async fn update_street2_for_mailbox(&self, mailboxes: Vec<Mailbox>) -> color_eyre::Result<Vec<Mailbox>> {
+    async fn update_street2_for_mailbox(&self, mailboxes: Vec<Mailbox>) -> color_eyre::Result<CrawlResult> {
         let total_mailboxes = mailboxes.len();
+        let mut warnings: Vec<CrawlWarning> = Vec::new();
 
         let mailboxes = futures::stream::iter(mailboxes).enumerate().map(|(idx, mut mailbox)| {
             let link = mailbox.link.clone();
             async move {
                 let fut = || async {
                     info!("[{}/{}] fetching the detail page of [{}]...", idx + 1, total_mailboxes, mailbox.name);
-                    match self.fetch_location_detail_page(&mailbox.link).await {
-                        Ok(detail_page) => {
-                            mailbox.address.line1 = detail_page.street();
-                            Result::<_, color_eyre::eyre::Error>::Ok(mailbox)
-                        }
-                        Err(err) => {
-                            // fall back to original line1 from the state page
-                            log::warn!("using fallback address for [{}]: {:?}", mailbox.name, err);
-                            Result::<_, color_eyre::eyre::Error>::Ok(mailbox)
-                        }
-                    }
+                    self.fetch_location_detail_page(&mailbox.link).await.map(|detail_page| {
+                        mailbox.address.line1 = detail_page.street();
+                        mailbox
+                    })
                 };
                 fut().await
                     .map_err(|err| {
@@ -133,21 +140,25 @@ impl ATMBCrawl {
             .collect::<Vec<_>>()
             .await;
 
-        let (suc_list, err_list): (Vec<_>, Vec<_>) = mailboxes.into_iter().partition(Result::is_ok);
-        let suc_list = suc_list.into_iter().filter_map(Result::ok).collect::<Vec<_>>();
-        let err_list = err_list.into_iter().filter_map(Result::err).collect::<Vec<_>>();
-
-        if !err_list.is_empty() {
-            log::warn!(
-                "skipped [{}] mailboxes due to detail page errors; see logs for links and errors",
-                err_list.len()
-            );
-            for err in &err_list {
-                // each error already contains the mailbox link in the context
-                log::warn!("{:?}", err);
+        let mut suc_list = Vec::new();
+        for result in mailboxes {
+            match result {
+                Ok(mailbox) => suc_list.push(mailbox),
+                Err(err) => {
+                    let link = extract_link_from_error(&err);
+                    warnings.push(CrawlWarning {
+                        name: link.clone().unwrap_or_else(|| "unknown".to_string()),
+                        link: link.unwrap_or_else(|| "unknown".to_string()),
+                        reason: format!("{:?}", err),
+                    });
+                }
             }
         }
-        Ok(suc_list)
+
+        Ok(CrawlResult {
+            mailboxes: suc_list,
+            warnings,
+        })
     }
 
     async fn fetch_state_pages(&self, country_page: &CountryPage<'_>) -> color_eyre::Result<Vec<StatePage>> {
@@ -181,4 +192,12 @@ impl ATMBCrawl {
         let html = self.client.fetch_page(mailbox_link).await?;
         Ok(LocationDetailPage::parse_html(&html)?)
     }
+}
+
+fn extract_link_from_error(err: &color_eyre::eyre::Error) -> Option<String> {
+    let msg = format!("{:?}", err);
+    msg.split('[')
+        .nth(2)
+        .and_then(|s| s.split(']').next())
+        .map(|s| s.to_string())
 }
