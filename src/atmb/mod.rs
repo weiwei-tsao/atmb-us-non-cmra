@@ -9,6 +9,12 @@ use reqwest::header::{
     USER_AGENT,
 };
 use reqwest::Client;
+use sha1::{Digest, Sha1};
+use std::collections::HashMap;
+use std::fs;
+use std::path::Path;
+use std::sync::Arc;
+use tokio::sync::Mutex as AsyncMutex;
 use tokio::time::{sleep, Duration};
 
 pub mod model;
@@ -18,6 +24,10 @@ const BASE_URL: &str = "https://www.anytimemailbox.com";
 const UA: &str = "Mozilla/5.0 (X11; Linux x86_64; rv:128.0) Gecko/20100101 Firefox/128.0";
 
 const US_HOME_PAGE_URL: &str = "/l/usa";
+const CACHE_DIR: &str = "cache";
+const CACHE_HTML_DIR: &str = "cache/html";
+const CACHE_BASE_MAILBOXES: &str = "cache/mailboxes_base.json";
+const CACHE_DETAIL_FILE: &str = "cache/mailboxes_detail.json";
 
 /// HTTP client for obtaining information from ATMB
 struct ATMBClient {
@@ -74,6 +84,55 @@ impl ATMBClient {
     }
 }
 
+fn ensure_dir(path: &str) -> color_eyre::Result<()> {
+    fs::create_dir_all(path)?;
+    Ok(())
+}
+
+fn cache_key(url: &str) -> String {
+    let mut hasher = Sha1::new();
+    hasher.update(url.as_bytes());
+    format!("{:x}", hasher.finalize())
+}
+
+fn read_cached_html(url: &str) -> Option<String> {
+    let path = Path::new(CACHE_HTML_DIR).join(format!("{}.html", cache_key(url)));
+    fs::read_to_string(path).ok()
+}
+
+fn write_cached_html(url: &str, body: &str) -> color_eyre::Result<()> {
+    ensure_dir(CACHE_HTML_DIR)?;
+    let path = Path::new(CACHE_HTML_DIR).join(format!("{}.html", cache_key(url)));
+    fs::write(path, body)?;
+    Ok(())
+}
+
+fn load_base_mailboxes() -> Option<Vec<Mailbox>> {
+    fs::read_to_string(CACHE_BASE_MAILBOXES)
+        .ok()
+        .and_then(|s| serde_json::from_str(&s).ok())
+}
+
+fn save_base_mailboxes(mailboxes: &[Mailbox]) -> color_eyre::Result<()> {
+    ensure_dir(CACHE_DIR)?;
+    let json = serde_json::to_string(mailboxes)?;
+    fs::write(CACHE_BASE_MAILBOXES, json)?;
+    Ok(())
+}
+
+fn load_detail_cache() -> HashMap<String, String> {
+    fs::read_to_string(CACHE_DETAIL_FILE)
+        .ok()
+        .and_then(|s| serde_json::from_str(&s).ok())
+        .unwrap_or_default()
+}
+
+fn save_detail_cache(map: &HashMap<String, String>) -> color_eyre::Result<()> {
+    ensure_dir(CACHE_DIR)?;
+    fs::write(CACHE_DETAIL_FILE, serde_json::to_string(map)?)?;
+    Ok(())
+}
+
 pub struct ATMBCrawl {
     client: ATMBClient,
 }
@@ -99,8 +158,12 @@ impl ATMBCrawl {
     }
 
     pub async fn fetch(&self) -> color_eyre::Result<CrawlResult> {
+        if let Some(mailboxes) = load_base_mailboxes() {
+            info!("Loaded mailboxes from cache");
+            return self.update_street2_for_mailbox(mailboxes).await;
+        }
         // we're only interested in US, so hardcode here.
-        let country_html = self.client.fetch_page(US_HOME_PAGE_URL).await?;
+        let country_html = self.fetch_page_cached(US_HOME_PAGE_URL).await?;
         let country_page = CountryPage::parse_html(&country_html).map_err(|e| {
             eyre!(
                 "failed to parse country page: {:?}, body_prefix={}",
@@ -128,10 +191,21 @@ impl ATMBCrawl {
             bail!("Some mailboxes cannot be fetched");
         }
 
+        let _ = save_base_mailboxes(&mailboxes);
         // visit every mailbox detail page to get the address line 2
         self.update_street2_for_mailbox(mailboxes)
             .await
             .map_err(|e| eyre!("Some mailbox's detail cannot be fetched: {:?}", e))
+    }
+
+    async fn fetch_page_cached(&self, url: &str) -> color_eyre::Result<String> {
+        if let Some(body) = read_cached_html(url) {
+            info!("Cache hit for {}", url);
+            return Ok(body);
+        }
+        let body = self.client.fetch_page(url).await?;
+        let _ = write_cached_html(url, &body);
+        Ok(body)
     }
 
     async fn update_street2_for_mailbox(
@@ -140,12 +214,21 @@ impl ATMBCrawl {
     ) -> color_eyre::Result<CrawlResult> {
         let total_mailboxes = mailboxes.len();
         let mut warnings: Vec<CrawlWarning> = Vec::new();
+        let detail_cache = Arc::new(AsyncMutex::new(load_detail_cache()));
 
         let mailboxes = futures::stream::iter(mailboxes)
             .enumerate()
             .map(|(idx, mut mailbox)| {
                 let link = mailbox.link.clone();
+                let cache = detail_cache.clone();
                 async move {
+                    if let Some(street) = {
+                        let guard = cache.lock().await;
+                        guard.get(&link).cloned()
+                    } {
+                        mailbox.address.line1 = street;
+                        return Ok(mailbox);
+                    }
                     let fut = || async {
                         info!(
                             "[{}/{}] fetching the detail page of [{}]...",
@@ -160,11 +243,19 @@ impl ATMBCrawl {
                                 mailbox
                             })
                     };
-                    fut().await.map_err(|err| {
+                    let res = fut().await.map_err(|err| {
                         let err = eyre!("cannot fetch detail page for: [{}]: {:?}", link, err);
                         log::error!("{:?}", err);
                         err
-                    })
+                    })?;
+
+                    if let Ok(mut guard) = cache.try_lock() {
+                        guard.insert(link.clone(), res.address.line1.clone());
+                    } else {
+                        let mut guard = cache.lock().await;
+                        guard.insert(link.clone(), res.address.line1.clone());
+                    }
+                    Ok(res)
                 }
             })
             .buffer_unordered(3)
@@ -185,6 +276,9 @@ impl ATMBCrawl {
                 }
             }
         }
+
+        let cache_guard = detail_cache.lock().await;
+        let _ = save_detail_cache(&cache_guard);
 
         Ok(CrawlResult {
             mailboxes: suc_list,
@@ -207,7 +301,7 @@ impl ATMBCrawl {
                         state_html_info.name()
                     );
                     async move {
-                        let state_html = self.client.fetch_page(state_html_info.url()).await?;
+                        let state_html = self.fetch_page_cached(state_html_info.url()).await?;
                         Ok(StatePage::parse_html(&state_html)?)
                     }
                 })

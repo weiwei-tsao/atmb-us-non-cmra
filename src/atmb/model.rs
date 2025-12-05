@@ -1,5 +1,7 @@
 /// basic structure for an address
-#[derive(Debug, Hash, PartialEq, Eq, Clone)]
+use serde::{Deserialize, Serialize};
+
+#[derive(Debug, Hash, PartialEq, Eq, Clone, Serialize, Deserialize)]
 pub struct Address {
     pub line1: String,
     pub city: String,
@@ -18,7 +20,7 @@ impl Address {
 }
 
 /// Complete ATMB information for a mailbox
-#[derive(Debug, Hash, PartialEq, Eq)]
+#[derive(Debug, Hash, PartialEq, Eq, Serialize, Deserialize, Clone)]
 pub struct Mailbox {
     pub name: String,
     pub address: Address,
