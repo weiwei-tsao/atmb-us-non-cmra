@@ -4,9 +4,11 @@ use atmb_us_physical::record::Record;
 use atmb_us_physical::smarty::{AdditionalInfo, SmartyClientProxy};
 use futures::StreamExt;
 use log::{error, info};
+use rand::{thread_rng, Rng};
 use std::collections::HashMap;
 use std::path::Path;
 use std::sync::OnceLock;
+use tokio::time::{sleep, Duration};
 
 static LOG_GUARD: OnceLock<tracing_appender::non_blocking::WorkerGuard> = OnceLock::new();
 
@@ -121,11 +123,14 @@ async fn inquire_mailboxes_info(
                         return None;
                     }
                 };
+                // small random delay to smooth out request rate
+                let delay_ms: u64 = thread_rng().gen_range(100..300);
+                sleep(Duration::from_millis(delay_ms)).await;
                 Some((mailbox, additional_info))
             }
         })
         // keep concurrency modest to avoid hammering Smarty free-tier limits
-        .buffer_unordered(3)
+        .buffer_unordered(2)
         .collect::<Vec<_>>()
         .await;
 

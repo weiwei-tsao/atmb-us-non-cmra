@@ -13,6 +13,7 @@ use std::sync::{
     atomic::{AtomicUsize, Ordering},
     Mutex,
 };
+use std::time::{Duration, Instant};
 
 /// A free trial account is limited to 1000 lookups per month.
 /// So we use multiple accounts to avoid the limitation.
@@ -62,11 +63,15 @@ impl SmartyClientProxy {
                     return Ok(info);
                 }
                 Err(e) => {
-                    // still advance lookup count so we don't hammer one account forever
+                    let hard = is_hard_error(&e);
                     self.update_state(idx, false);
                     log::warn!("Smarty client [{}] failed: {:?}", idx, e);
                     last_err = Some(e);
-                    continue;
+                    if hard {
+                        continue;
+                    } else {
+                        continue;
+                    }
                 }
             }
         }
@@ -94,8 +99,10 @@ impl SmartyClientProxy {
                 if success {
                     s.lookups += 1;
                     s.consecutive_failures = 0;
+                    s.cooldown_until = None;
                 } else {
                     s.consecutive_failures += 1;
+                    s.cooldown_until = Some(Instant::now() + Duration::from_secs(300));
                 }
             }
         }
@@ -127,14 +134,18 @@ impl SmartyClientProxy {
 struct ClientState {
     lookups: u32,
     consecutive_failures: u32,
+    cooldown_until: Option<Instant>,
 }
 
 impl ClientState {
     fn is_available(&self) -> bool {
         const MAX_LOOKUPS: u32 = 1000;
-        // lower threshold to force faster rotation when free accounts hit hard errors
         const MAX_CONSECUTIVE_FAILURES: u32 = 1;
-        self.lookups < MAX_LOOKUPS && self.consecutive_failures < MAX_CONSECUTIVE_FAILURES
+        let cooled = self
+            .cooldown_until
+            .map(|t| Instant::now() >= t)
+            .unwrap_or(true);
+        self.lookups < MAX_LOOKUPS && self.consecutive_failures < MAX_CONSECUTIVE_FAILURES && cooled
     }
 }
 
@@ -215,6 +226,14 @@ fn map_smarty_err(err: SmartyError) -> color_eyre::eyre::Error {
         SmartyError::Middleware(e) => eyre!("smarty middleware error: {}", e),
         other => eyre!("smarty error: {:?}", other),
     }
+}
+
+fn is_hard_error(err: &color_eyre::eyre::Error) -> bool {
+    let s = format!("{:?}", err);
+    s.contains(" 402 ")
+        || s.contains(" 401 ")
+        || s.contains(" 429 ")
+        || s.to_lowercase().contains("payment required")
 }
 
 #[derive(Debug)]
