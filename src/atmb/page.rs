@@ -185,7 +185,10 @@ pub struct LocationDetailPage {
 impl LocationDetailPage {
     pub fn parse_html(html: &str) -> color_eyre::Result<Self> {
         let document = Html::parse_document(html);
-        let address_container = document.select(&LOCATION_DETAIL_SELECTOR).next().unwrap();
+        let address_container = document
+            .select(&LOCATION_DETAIL_SELECTOR)
+            .next()
+            .ok_or_else(|| eyre!("No address container found, page structure might be changed"))?;
         let div_selector = Selector::parse("div").unwrap();
 
         let lines = address_container.select(&div_selector)

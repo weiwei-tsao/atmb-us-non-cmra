@@ -130,10 +130,16 @@ impl ATMBCrawl {
         let err_list = err_list.into_iter().filter_map(Result::err).collect::<Vec<_>>();
 
         if !err_list.is_empty() {
-            bail!("{:#?}", err_list);
-        } else {
-            Ok(suc_list)
+            log::warn!(
+                "skipped [{}] mailboxes due to detail page errors; see logs for links and errors",
+                err_list.len()
+            );
+            for err in &err_list {
+                // each error already contains the mailbox link in the context
+                log::warn!("{:?}", err);
+            }
         }
+        Ok(suc_list)
     }
 
     async fn fetch_state_pages(&self, country_page: &CountryPage<'_>) -> color_eyre::Result<Vec<StatePage>> {

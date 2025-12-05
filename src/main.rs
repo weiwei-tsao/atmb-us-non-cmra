@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 use std::path::Path;
+use std::sync::OnceLock;
 use futures::StreamExt;
 use log::{error, info};
 use crate::atmb::ATMBCrawl;
@@ -12,17 +13,30 @@ mod record;
 mod smarty;
 mod utils;
 
+static LOG_GUARD: OnceLock<tracing_appender::non_blocking::WorkerGuard> = OnceLock::new();
+
 fn init_logger() {
-    install_tracing();
+    let guard = install_tracing();
+    // keep guard alive for the lifetime of the program
+    let _ = LOG_GUARD.set(guard);
     color_eyre::install().unwrap();
 }
 
-fn install_tracing() {
+fn install_tracing() -> tracing_appender::non_blocking::WorkerGuard {
     use tracing_error::ErrorLayer;
+    use tracing_appender::rolling;
+    use tracing_appender::non_blocking;
     use tracing_subscriber::prelude::*;
     use tracing_subscriber::{fmt, EnvFilter};
 
+    // file log: result/run.log
+    // ensure log directory exists
+    let _ = std::fs::create_dir_all("result");
+    let file_appender = rolling::never("result", "run.log");
+    let (file_writer, guard) = non_blocking(file_appender);
+
     let fmt_layer = fmt::layer().with_target(false);
+    let file_layer = fmt::layer().with_target(false).with_writer(file_writer);
     let filter_layer = EnvFilter::try_from_default_env()
         .or_else(|_| EnvFilter::try_new("info"))
         .unwrap();
@@ -30,8 +44,11 @@ fn install_tracing() {
     tracing_subscriber::registry()
         .with(filter_layer)
         .with(fmt_layer)
+        .with(file_layer)
         .with(ErrorLayer::default())
         .init();
+
+    guard
 }
 
 #[tokio::main]
