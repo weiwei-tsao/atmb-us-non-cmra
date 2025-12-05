@@ -1,8 +1,9 @@
-use std::cell::RefCell;
+use std::sync::{Mutex, atomic::{AtomicUsize, Ordering}};
 use color_eyre::eyre::{bail, eyre};
 use serde::{Deserialize, Serialize};
 use smarty_rust_sdk::sdk::authentication::SecretKeyCredential;
 use smarty_rust_sdk::sdk::batch::Batch;
+use smarty_rust_sdk::sdk::error::SmartyError;
 use smarty_rust_sdk::sdk::options::{Options, OptionsBuilder};
 use smarty_rust_sdk::us_street_api::client::USStreetAddressClient;
 use smarty_rust_sdk::us_street_api::lookup::{Lookup, MatchStrategy};
@@ -15,7 +16,8 @@ use crate::utils::retry_wrapper;
 /// As there are ~1700 atmb location currently, we need at least 2 accounts.
 pub struct SmartyClientProxy {
     clients: Vec<SmartyClient>,
-    state: RefCell<Vec<ClientState>>,
+    state: Mutex<Vec<ClientState>>,
+    cursor: AtomicUsize,
 }
 
 impl SmartyClientProxy {
@@ -25,35 +27,69 @@ impl SmartyClientProxy {
             .map(|(id, secret)| SmartyClient::new(id, secret))
             .collect::<Result<Vec<_>, _>>()?;
         let state = clients.iter().map(|_| ClientState::default()).collect();
+        log::info!("Loaded [{}] Smarty credential(s)", clients.len());
         Ok(
             Self {
                 clients,
-                state: RefCell::new(state),
+                state: Mutex::new(state),
+                cursor: AtomicUsize::new(0),
             }
         )
     }
 
     pub async fn inquire_address(&self, address: Address) -> color_eyre::Result<AdditionalInfo> {
-        let client = self.next_client();
-        client.inquire_address(address).await
+        let total_clients = self.clients.len();
+        let mut last_err = None;
+
+        for _ in 0..total_clients {
+            let idx = match self.next_client_idx() {
+                Some(i) => i,
+                None => break,
+            };
+
+            match self.clients[idx].inquire_address(address.clone()).await {
+                Ok(info) => {
+                    self.update_state(idx, true);
+                    return Ok(info);
+                }
+                Err(e) => {
+                    // still advance lookup count so we don't hammer one account forever
+                    self.update_state(idx, false);
+                    log::warn!("Smarty client [{}] failed: {:?}", idx, e);
+                    last_err = Some(e);
+                    continue;
+                }
+            }
+        }
+
+        Err(last_err.unwrap_or_else(|| eyre!("all Smarty clients failed or are unavailable")))
     }
 
-    fn next_client(&self) -> &SmartyClient {
-        let idx = self.get_client_id();
-        self.update_state(idx);
-        &self.clients[idx]
+    fn next_client_idx(&self) -> Option<usize> {
+        let total = self.clients.len();
+        for _ in 0..total {
+            let idx = self.cursor.fetch_add(1, Ordering::AcqRel) % total;
+            let state = self.state.lock().unwrap();
+            let available = state.get(idx).map_or(false, ClientState::is_available);
+            drop(state);
+            if available {
+                return Some(idx);
+            }
+        }
+        None
     }
 
-    /// get the index of a client that is not exceeded
-    fn get_client_id(&self) -> usize {
-        self.state.borrow().iter().enumerate().find(|(_, state)| !state.is_exceeded())
-            .map(|(id, _)| id)
-            .expect("all clients are exceeded")
-    }
-
-    fn update_state(&self, idx: usize) {
-        let mut state = self.state.borrow_mut();
-        state[idx].lookups += 1;
+    fn update_state(&self, idx: usize, success: bool) {
+        if let Ok(mut state) = self.state.lock() {
+            if let Some(s) = state.get_mut(idx) {
+                if success {
+                    s.lookups += 1;
+                    s.consecutive_failures = 0;
+                } else {
+                    s.consecutive_failures += 1;
+                }
+            }
+        }
     }
 
     /// load authentication credentials from environment variables
@@ -76,11 +112,14 @@ impl SmartyClientProxy {
 #[derive(Default)]
 struct ClientState {
     lookups: u32,
+    consecutive_failures: u32,
 }
 
 impl ClientState {
-    fn is_exceeded(&self) -> bool {
-        self.lookups > 1000
+    fn is_available(&self) -> bool {
+        const MAX_LOOKUPS: u32 = 1000;
+        const MAX_CONSECUTIVE_FAILURES: u32 = 5;
+        self.lookups < MAX_LOOKUPS && self.consecutive_failures < MAX_CONSECUTIVE_FAILURES
     }
 }
 
@@ -106,7 +145,7 @@ impl SmartyClient {
     async fn _inquire_address(&self, address: Address) -> color_eyre::Result<AdditionalInfo> {
         let mut batch = Batch::default();
         batch.push(Lookup::from(address))?;
-        self.client.send(&mut batch).await?;
+        self.client.send(&mut batch).await.map_err(|e| map_smarty_err(e))?;
         let resp = batch.records().into_iter().next()
             .ok_or_else(|| eyre!("no response from Smarty"))?;
         resp.clone().try_into()
@@ -137,6 +176,15 @@ impl From<Address> for Lookup {
             match_strategy: MatchStrategy::Enhanced,
             ..Default::default()
         }
+    }
+}
+
+fn map_smarty_err(err: SmartyError) -> color_eyre::eyre::Error {
+    match err {
+        SmartyError::HttpError { code, detail } => eyre!("smarty http error: {code} - {detail}"),
+        SmartyError::RequestProcess(e) => eyre!("smarty request error: {}", e),
+        SmartyError::Middleware(e) => eyre!("smarty middleware error: {}", e),
+        other => eyre!("smarty error: {:?}", other),
     }
 }
 

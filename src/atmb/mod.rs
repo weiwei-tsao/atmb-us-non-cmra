@@ -109,9 +109,17 @@ impl ATMBCrawl {
             async move {
                 let fut = || async {
                     info!("[{}/{}] fetching the detail page of [{}]...", idx + 1, total_mailboxes, mailbox.name);
-                    let detail_page = self.fetch_location_detail_page(&mailbox.link).await?;
-                    mailbox.address.line1 = detail_page.street();
-                    Result::<_, color_eyre::eyre::Error>::Ok(mailbox)
+                    match self.fetch_location_detail_page(&mailbox.link).await {
+                        Ok(detail_page) => {
+                            mailbox.address.line1 = detail_page.street();
+                            Result::<_, color_eyre::eyre::Error>::Ok(mailbox)
+                        }
+                        Err(err) => {
+                            // fall back to original line1 from the state page
+                            log::warn!("using fallback address for [{}]: {:?}", mailbox.name, err);
+                            Result::<_, color_eyre::eyre::Error>::Ok(mailbox)
+                        }
+                    }
                 };
                 fut().await
                     .map_err(|err| {

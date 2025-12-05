@@ -36,7 +36,14 @@ fn install_tracing() -> tracing_appender::non_blocking::WorkerGuard {
     let (file_writer, guard) = non_blocking(file_appender);
 
     let fmt_layer = fmt::layer().with_target(false);
-    let file_layer = fmt::layer().with_target(false).with_writer(file_writer);
+    let file_layer = fmt::layer()
+        .with_target(false)
+        .with_ansi(false)
+        .event_format(
+            fmt::format()
+                .compact()
+        )
+        .with_writer(file_writer);
     let filter_layer = EnvFilter::try_from_default_env()
         .or_else(|_| EnvFilter::try_new("info"))
         .unwrap();
@@ -108,7 +115,8 @@ async fn inquire_mailboxes_info(mailboxes: Vec<Mailbox>) -> color_eyre::Result<H
             Some((mailbox, additional_info))
         }
     })
-        .buffer_unordered(10)
+        // keep concurrency modest to avoid hammering Smarty free-tier limits
+        .buffer_unordered(3)
         .collect::<Vec<_>>()
         .await;
 
