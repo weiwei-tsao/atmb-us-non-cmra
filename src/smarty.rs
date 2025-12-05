@@ -1,6 +1,7 @@
 use crate::atmb::model::Address;
 use crate::utils::retry_wrapper;
 use color_eyre::eyre::{bail, eyre};
+use dotenvy::dotenv;
 use serde::{Deserialize, Serialize};
 use smarty_rust_sdk::sdk::authentication::SecretKeyCredential;
 use smarty_rust_sdk::sdk::batch::Batch;
@@ -98,6 +99,7 @@ impl SmartyClientProxy {
     ///
     /// CREDENTIALS=`ID1`=`SECRET1`[,`ID2`=`SECRET2`]*
     fn credentials() -> Vec<(String, String)> {
+        let _ = dotenv();
         std::env::var("CREDENTIALS")
             .map(|credentials| {
                 credentials
