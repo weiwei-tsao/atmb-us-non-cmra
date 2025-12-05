@@ -1,8 +1,8 @@
+use backoff::{future::retry, ExponentialBackoff};
+use log::warn;
 use std::future::Future;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::time::Duration;
-use backoff::{future::retry, ExponentialBackoff};
-use log::warn;
 
 /// Retry a function for a number of times
 pub async fn retry_wrapper<I, E, F, Fut>(retry_times: usize, f: F) -> Result<I, E>
@@ -20,7 +20,7 @@ where
         f().await
             .map_err(|err| map_to_backoff_err(err, times, retry_times))
     })
-        .await
+    .await
 }
 
 fn map_to_backoff_err<E>(err: E, cur_times: usize, max_times: usize) -> backoff::Error<E> {

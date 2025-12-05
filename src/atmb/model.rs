@@ -1,4 +1,3 @@
-
 /// basic structure for an address
 #[derive(Debug, Hash, PartialEq, Eq, Clone)]
 pub struct Address {

@@ -1,12 +1,12 @@
+use atmb_us_physical::atmb::model::Mailbox;
+use atmb_us_physical::atmb::ATMBCrawl;
+use atmb_us_physical::record::Record;
+use atmb_us_physical::smarty::{AdditionalInfo, SmartyClientProxy};
+use futures::StreamExt;
+use log::{error, info};
 use std::collections::HashMap;
 use std::path::Path;
 use std::sync::OnceLock;
-use futures::StreamExt;
-use log::{error, info};
-use atmb_us_physical::atmb::ATMBCrawl;
-use atmb_us_physical::atmb::model::Mailbox;
-use atmb_us_physical::record::Record;
-use atmb_us_physical::smarty::{AdditionalInfo, SmartyClientProxy};
 
 static LOG_GUARD: OnceLock<tracing_appender::non_blocking::WorkerGuard> = OnceLock::new();
 
@@ -18,9 +18,9 @@ fn init_logger() {
 }
 
 fn install_tracing() -> tracing_appender::non_blocking::WorkerGuard {
-    use tracing_error::ErrorLayer;
-    use tracing_appender::rolling;
     use tracing_appender::non_blocking;
+    use tracing_appender::rolling;
+    use tracing_error::ErrorLayer;
     use tracing_subscriber::prelude::*;
     use tracing_subscriber::{fmt, EnvFilter};
 
@@ -34,10 +34,7 @@ fn install_tracing() -> tracing_appender::non_blocking::WorkerGuard {
     let file_layer = fmt::layer()
         .with_target(false)
         .with_ansi(false)
-        .event_format(
-            fmt::format()
-                .compact()
-        )
+        .event_format(fmt::format().compact())
         .with_writer(file_writer);
     let filter_layer = EnvFilter::try_from_default_env()
         .or_else(|_| EnvFilter::try_new("info"))
@@ -71,18 +68,23 @@ async fn run() -> color_eyre::Result<()> {
     let crawl_result = atmb.fetch().await?;
     let mailboxes = crawl_result.mailboxes;
 
-    info!("finished fetching, got [{}] mailboxes in total", mailboxes.len());
+    info!(
+        "finished fetching, got [{}] mailboxes in total",
+        mailboxes.len()
+    );
     info!("begin to inquire mailbox address info...");
 
     let mailboxes_info = inquire_mailboxes_info(mailboxes).await?;
     // filter out CMRA and addresses
-    let records = mailboxes_info.into_iter().filter_map(|(mailbox, info)| {
-        if info.is_cmra() {
-            None
-        } else {
-            Some(Record::from_mailbox_and_info(mailbox, info))
-        }
-    })
+    let records = mailboxes_info
+        .into_iter()
+        .filter_map(|(mailbox, info)| {
+            if info.is_cmra() {
+                None
+            } else {
+                Some(Record::from_mailbox_and_info(mailbox, info))
+            }
+        })
         .collect::<Vec<_>>();
 
     let out_file = "result/mailboxes.csv";
@@ -91,32 +93,46 @@ async fn run() -> color_eyre::Result<()> {
     Ok(())
 }
 
-async fn inquire_mailboxes_info(mailboxes: Vec<Mailbox>) -> color_eyre::Result<HashMap<Mailbox, AdditionalInfo>> {
+async fn inquire_mailboxes_info(
+    mailboxes: Vec<Mailbox>,
+) -> color_eyre::Result<HashMap<Mailbox, AdditionalInfo>> {
     let client = SmartyClientProxy::new()?;
 
     let total = mailboxes.len();
-    let mailboxes_info = futures::stream::iter(mailboxes.into_iter()).enumerate().map(|(idx, mailbox)| {
-        let client = &client;
-        async move {
-            info!("[{}/{total}] fetching mailbox address info for [{}]", idx + 1, mailbox.name);
+    let mailboxes_info = futures::stream::iter(mailboxes.into_iter())
+        .enumerate()
+        .map(|(idx, mailbox)| {
+            let client = &client;
+            async move {
+                info!(
+                    "[{}/{total}] fetching mailbox address info for [{}]",
+                    idx + 1,
+                    mailbox.name
+                );
 
-            let address = &mailbox.address;
-            let additional_info = match client.inquire_address(address.clone()).await {
-                Ok(info) => info,
-                Err(e) => {
-                    error!("cannot inquire address info for [{}]: {:?}", mailbox.name, e);
-                    return None;
-                }
-            };
-            Some((mailbox, additional_info))
-        }
-    })
+                let address = &mailbox.address;
+                let additional_info = match client.inquire_address(address.clone()).await {
+                    Ok(info) => info,
+                    Err(e) => {
+                        error!(
+                            "cannot inquire address info for [{}]: {:?}",
+                            mailbox.name, e
+                        );
+                        return None;
+                    }
+                };
+                Some((mailbox, additional_info))
+            }
+        })
         // keep concurrency modest to avoid hammering Smarty free-tier limits
         .buffer_unordered(3)
         .collect::<Vec<_>>()
         .await;
 
-    Ok(mailboxes_info.into_iter().filter_map(|info| info).collect::<HashMap<_, _>>())
+    Ok(mailboxes_info
+        .into_iter()
+        .filter_map(|info| info)
+        .collect::<HashMap<_, _>>())
 }
 
 /// write result to CSV file

@@ -1,8 +1,8 @@
 use std::fs::File;
 use std::io::{BufWriter, Write};
 
-use atmb_us_physical::atmb::{ATMBCrawl, CrawlWarning};
 use atmb_us_physical::atmb::model::Mailbox;
+use atmb_us_physical::atmb::{ATMBCrawl, CrawlWarning};
 
 fn main() -> color_eyre::Result<()> {
     color_eyre::install()?;
@@ -35,19 +35,19 @@ fn main() -> color_eyre::Result<()> {
     })
 }
 
-async fn crawl_and_collect(crawler: &ATMBCrawl) -> color_eyre::Result<(Vec<Mailbox>, Vec<CrawlWarning>)> {
+async fn crawl_and_collect(
+    crawler: &ATMBCrawl,
+) -> color_eyre::Result<(Vec<Mailbox>, Vec<CrawlWarning>)> {
     // reuse existing fetch logic but capture errors already logged inside
     match crawler.fetch().await {
         Ok(res) => Ok((res.mailboxes, res.warnings)),
-        Err(err) => {
-            Ok((
-                Vec::new(),
-                vec![CrawlWarning {
-                    name: "unknown".to_string(),
-                    link: "unknown".to_string(),
-                    reason: format!("{:?}", err),
-                }],
-            ))
-        }
+        Err(err) => Ok((
+            Vec::new(),
+            vec![CrawlWarning {
+                name: "unknown".to_string(),
+                link: "unknown".to_string(),
+                reason: format!("{:?}", err),
+            }],
+        )),
     }
 }

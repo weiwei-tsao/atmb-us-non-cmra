@@ -1,6 +1,6 @@
-use serde::Serialize;
 use crate::atmb::model::Mailbox;
 use crate::smarty::{AdditionalInfo, Rdi, YesOrNo};
+use serde::Serialize;
 
 /// The final struct that will be used to store the data
 #[derive(Debug, Serialize)]

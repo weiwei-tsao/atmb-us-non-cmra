@@ -1,63 +1,74 @@
-use std::sync::LazyLock;
+use crate::atmb::model::{Address, Mailbox};
 use color_eyre::eyre::{bail, eyre};
 use regex::Regex;
 use scraper::{Html, Selector};
-use crate::atmb::model::{Address, Mailbox};
+use std::sync::LazyLock;
 
-static STATE_LIST_REG: LazyLock<Regex> = LazyLock::new(|| Regex::new(r#"<a class='theme-simple-link' href='(.*?)'>(.*?)</a>"#).unwrap());
-static MAP_OBJECT_REG: LazyLock<Regex> = LazyLock::new(|| Regex::new(r#"var map_object = (?P<json>\{.*?\});"#).unwrap());
+// (?s) enables dot to match newlines; ATMB now sometimes pretty-prints the script
+static MAP_OBJECT_REG: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r#"(?s)var\s+map_object\s*=\s*(?P<json>\{.*?\});"#).unwrap());
 
-static LOCATION_CONTAINER_SELECTOR: LazyLock<Selector> = LazyLock::new(|| Selector::parse(r#"div[class="theme-location-item"]"#).unwrap());
-static LOCATION_TITLE_SELECTOR: LazyLock<Selector> = LazyLock::new(|| Selector::parse(r#"h3[class="t-title"]"#).unwrap());
-static LOCATION_PRICE_SELECTOR: LazyLock<Selector> = LazyLock::new(|| Selector::parse(r#"div[class="t-price"]"#).unwrap());
-static LOCATION_ADDRESS_SELECTOR: LazyLock<Selector> = LazyLock::new(|| Selector::parse(r#"div[class="t-addr"]"#).unwrap());
-static LOCATION_PLAN_SELECTOR: LazyLock<Selector> = LazyLock::new(|| Selector::parse(r#"a[class~="gt-plan"]"#).unwrap());
-static LOCATION_DETAIL_SELECTOR: LazyLock<Selector> = LazyLock::new(|| Selector::parse(r#"div[class="t-sec1"] div[class="t-text"]"#).unwrap());
+static LOCATION_CONTAINER_SELECTOR: LazyLock<Selector> =
+    LazyLock::new(|| Selector::parse(r#"div[class="theme-location-item"]"#).unwrap());
+static LOCATION_TITLE_SELECTOR: LazyLock<Selector> =
+    LazyLock::new(|| Selector::parse(r#"h3[class="t-title"]"#).unwrap());
+static LOCATION_PRICE_SELECTOR: LazyLock<Selector> =
+    LazyLock::new(|| Selector::parse(r#"div[class="t-price"]"#).unwrap());
+static LOCATION_ADDRESS_SELECTOR: LazyLock<Selector> =
+    LazyLock::new(|| Selector::parse(r#"div[class="t-addr"]"#).unwrap());
+static LOCATION_PLAN_SELECTOR: LazyLock<Selector> =
+    LazyLock::new(|| Selector::parse(r#"a[class~="gt-plan"]"#).unwrap());
+static LOCATION_DETAIL_SELECTOR: LazyLock<Selector> =
+    LazyLock::new(|| Selector::parse(r#"div[class="t-sec1"] div[class="t-text"]"#).unwrap());
 
 /// ATMB country page. i.e. https://www.anytimemailbox.com/l/usa
 #[derive(Debug)]
-pub struct CountryPage<'a> {
-    pub states: Vec<StateHtmlInfo<'a>>,
+pub struct CountryPage {
+    pub states: Vec<StateHtmlInfo>,
 }
 
 #[derive(Debug)]
-pub struct StateHtmlInfo<'a> {
-    sub_url: &'a str,
-    name: &'a str,
+pub struct StateHtmlInfo {
+    sub_url: String,
+    name: String,
 }
 
-impl StateHtmlInfo<'_> {
+impl StateHtmlInfo {
     pub fn url(&self) -> &str {
-        self.sub_url
+        &self.sub_url
     }
 
     pub fn name(&self) -> &str {
-        self.name
+        &self.name
     }
 }
 
-impl<'a> CountryPage<'a> {
+impl CountryPage {
     /// get state list from the country page
-    pub fn parse_html(html: &'a str) -> color_eyre::Result<Self> {
+    pub fn parse_html(html: &str) -> color_eyre::Result<Self> {
         let mut states = Vec::new();
+        let document = Html::parse_document(html);
+        let selector = Selector::parse("a.theme-simple-link").unwrap();
 
-        for caps in STATE_LIST_REG.captures_iter(html) {
-            if caps.len() != 3 {
-                bail!("Unexpected capture length: {}, page structure might be changed", caps.len());
+        for node in document.select(&selector) {
+            let href = node
+                .value()
+                .attr("href")
+                .ok_or_else(|| eyre!("state link missing href"))?;
+            let name = node.text().collect::<String>().trim().to_string();
+            if name.is_empty() {
+                continue;
             }
             states.push(StateHtmlInfo {
-                sub_url: caps.get(1).unwrap().as_str(),
-                name: caps.get(2).unwrap().as_str(),
+                sub_url: href.to_string(),
+                name,
             });
         }
+
         if states.is_empty() {
             bail!("No state found, page structure might be changed");
         }
-        Ok(
-            Self {
-                states,
-            }
-        )
+        Ok(Self { states })
     }
 }
 
@@ -91,20 +102,28 @@ impl StatePage {
         let location_container = document.select(&LOCATION_CONTAINER_SELECTOR);
 
         for location_fragment in location_container {
-            let title = location_fragment.select(&LOCATION_TITLE_SELECTOR).next()
+            let title = location_fragment
+                .select(&LOCATION_TITLE_SELECTOR)
+                .next()
                 .ok_or_else(|| eyre!("No title found - {}", location_fragment.html()))?
                 .text()
                 .collect::<String>();
-            let price = location_fragment.select(&LOCATION_PRICE_SELECTOR).next()
+            let price = location_fragment
+                .select(&LOCATION_PRICE_SELECTOR)
+                .next()
                 .ok_or_else(|| eyre!("No price found - {}", location_fragment.html()))?
                 .text()
                 .collect::<String>();
-            let address = location_fragment.select(&LOCATION_ADDRESS_SELECTOR).next()
+            let address = location_fragment
+                .select(&LOCATION_ADDRESS_SELECTOR)
+                .next()
                 .ok_or_else(|| eyre!("No address found - {}", location_fragment.html()))?
                 .inner_html();
             let (line1, line2) = Self::split_address(&address)
                 .ok_or_else(|| eyre!("Failed to split address - {}", address))?;
-            let plan_link = location_fragment.select(&LOCATION_PLAN_SELECTOR).next()
+            let plan_link = location_fragment
+                .select(&LOCATION_PLAN_SELECTOR)
+                .next()
                 .ok_or_else(|| eyre!("No plan button found - {}", location_fragment.html()))?
                 .value()
                 .attr("href")
@@ -120,15 +139,12 @@ impl StatePage {
             });
         }
 
-        Ok(
-            Self {
-                locations,
-            }
-        )
+        Ok(Self { locations })
     }
 
     pub fn to_mailboxes(&self) -> color_eyre::Result<Vec<Mailbox>> {
-        self.locations.iter()
+        self.locations
+            .iter()
             .map(|location| location.clone().try_into())
             .collect()
     }
@@ -141,12 +157,12 @@ impl StatePage {
 
 impl LocationHtmlInfo {
     fn parse_city(&self) -> Option<&str> {
-        self.line2.split(",")
-            .next()
+        self.line2.split(",").next()
     }
 
     fn parse_state(&self) -> Option<&str> {
-        self.line2.split(",")
+        self.line2
+            .split(",")
             .skip(1)
             .next()
             .map(|s| s.trim())
@@ -161,7 +177,8 @@ impl LocationHtmlInfo {
             Some((zip, zip4))
         }
 
-        self.line2.split(",")
+        self.line2
+            .split(",")
             .skip(1)
             .next()
             .map(|s| s.trim())
@@ -170,8 +187,7 @@ impl LocationHtmlInfo {
     }
 
     fn price(&self) -> String {
-        self.price.replace("Starting from", "")
-            .replace(" ", "")
+        self.price.replace("Starting from", "").replace(" ", "")
     }
 }
 
@@ -186,16 +202,18 @@ pub struct LocationDetailPage {
 impl LocationDetailPage {
     pub fn parse_html(html: &str) -> color_eyre::Result<Self> {
         let document = Html::parse_document(html);
-        let lines = if let Some(address_container) = document.select(&LOCATION_DETAIL_SELECTOR).next() {
-            let div_selector = Selector::parse("div").unwrap();
-            address_container.select(&div_selector)
-                .map(|div| div.text().collect::<String>())
-                .filter(|s| !s.is_empty())
-                .collect::<Vec<_>>()
-        } else {
-            // Fallback: parse address from map_object JSON embedded in the page
-            Self::extract_from_map_object(html)?
-        };
+        let lines =
+            if let Some(address_container) = document.select(&LOCATION_DETAIL_SELECTOR).next() {
+                let div_selector = Selector::parse("div").unwrap();
+                address_container
+                    .select(&div_selector)
+                    .map(|div| div.text().collect::<String>())
+                    .filter(|s| !s.is_empty())
+                    .collect::<Vec<_>>()
+            } else {
+                // Fallback: parse address from map_object JSON embedded in the page
+                Self::extract_from_map_object(html)?
+            };
 
         let line2 = match lines.len() {
             // no line2
@@ -205,18 +223,21 @@ impl LocationDetailPage {
             // two-line line2
             6 => Some(format!("{} {}", lines[2], lines[3])),
             7 => None,
-            _ => bail!("Unexpected address line count: {}, page structure might be changed: {:?}", lines.len(), lines),
+            _ => bail!(
+                "Unexpected address line count: {}, page structure might be changed: {:?}",
+                lines.len(),
+                lines
+            ),
         };
-        Ok(
-            Self {
-                line1: lines[1].clone(),
-                line2,
-            }
-        )
+        Ok(Self {
+            line1: lines[1].clone(),
+            line2,
+        })
     }
 
     fn extract_from_map_object(html: &str) -> color_eyre::Result<Vec<String>> {
-        let caps = MAP_OBJECT_REG.captures(html)
+        let caps = MAP_OBJECT_REG
+            .captures(html)
             .ok_or_else(|| eyre!("No address container found, page structure might be changed"))?;
         let json_str = caps.name("json").unwrap().as_str();
         #[derive(serde::Deserialize)]
@@ -230,7 +251,10 @@ impl LocationDetailPage {
             for_add_ss: String,
         }
         let obj: MapObj = serde_json::from_str(json_str)?;
-        let lines = obj.map_data.for_add_ss.split("<br>")
+        let lines = obj
+            .map_data
+            .for_add_ss
+            .split("<br>")
             .filter(|s: &&str| !s.is_empty())
             .map(|s: &str| s.replace("<br/>", "").replace("<br />", ""))
             .collect::<Vec<_>>();
@@ -251,16 +275,22 @@ impl TryInto<Address> for LocationHtmlInfo {
     type Error = color_eyre::eyre::Error;
 
     fn try_into(self) -> Result<Address, Self::Error> {
-        let (zip, zip4) = self.parse_zip().ok_or_else(|| eyre!("Failed to parse zip code from: {}", self.line2))?;
-        Ok(
-            Address {
-                city: self.parse_city().ok_or_else(|| eyre!("Failed to parse city from: {}", self.line2))?.to_string(),
-                state: self.parse_state().ok_or_else(|| eyre!("Failed to parse state from: {}", self.line2))?.to_string(),
-                zip: zip.to_owned(),
-                zip4: zip4.map(|s| s.to_owned()),
-                line1: self.line1,
-            }
-        )
+        let (zip, zip4) = self
+            .parse_zip()
+            .ok_or_else(|| eyre!("Failed to parse zip code from: {}", self.line2))?;
+        Ok(Address {
+            city: self
+                .parse_city()
+                .ok_or_else(|| eyre!("Failed to parse city from: {}", self.line2))?
+                .to_string(),
+            state: self
+                .parse_state()
+                .ok_or_else(|| eyre!("Failed to parse state from: {}", self.line2))?
+                .to_string(),
+            zip: zip.to_owned(),
+            zip4: zip4.map(|s| s.to_owned()),
+            line1: self.line1,
+        })
     }
 }
 
@@ -268,13 +298,11 @@ impl TryInto<Mailbox> for LocationHtmlInfo {
     type Error = color_eyre::eyre::Error;
 
     fn try_into(self) -> Result<Mailbox, Self::Error> {
-        Ok(
-            Mailbox {
-                address: self.clone().try_into()?,
-                price: self.price(),
-                name: self.name,
-                link: self.link,
-            }
-        )
+        Ok(Mailbox {
+            address: self.clone().try_into()?,
+            price: self.price(),
+            name: self.name,
+            link: self.link,
+        })
     }
 }
