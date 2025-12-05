@@ -50,6 +50,12 @@ impl SmartyClientProxy {
                 None => break,
             };
 
+            log::info!(
+                "Smarty using client [{}:{}]",
+                idx,
+                self.clients[idx].id_tail()
+            );
+
             match self.clients[idx].inquire_address(address.clone()).await {
                 Ok(info) => {
                     self.update_state(idx, true);
@@ -126,20 +132,33 @@ struct ClientState {
 impl ClientState {
     fn is_available(&self) -> bool {
         const MAX_LOOKUPS: u32 = 1000;
-        const MAX_CONSECUTIVE_FAILURES: u32 = 5;
+        // lower threshold to force faster rotation when free accounts hit hard errors
+        const MAX_CONSECUTIVE_FAILURES: u32 = 1;
         self.lookups < MAX_LOOKUPS && self.consecutive_failures < MAX_CONSECUTIVE_FAILURES
     }
 }
 
 struct SmartyClient {
     client: USStreetAddressClient,
+    auth_id: String,
 }
 
 impl SmartyClient {
     fn new(auth_id: impl Into<String>, auth_token: impl Into<String>) -> color_eyre::Result<Self> {
+        let auth_id_str = auth_id.into();
         Ok(Self {
-            client: USStreetAddressClient::new(Self::options(auth_id, auth_token))?,
+            client: USStreetAddressClient::new(Self::options(auth_id_str.clone(), auth_token))?,
+            auth_id: auth_id_str,
         })
+    }
+
+    fn id_tail(&self) -> String {
+        let id = &self.auth_id;
+        if id.len() <= 6 {
+            id.clone()
+        } else {
+            id[id.len() - 6..].to_string()
+        }
     }
 
     async fn inquire_address(&self, address: Address) -> color_eyre::Result<AdditionalInfo> {

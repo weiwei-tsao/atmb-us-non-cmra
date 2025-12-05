@@ -18511,3 +18511,143 @@ Location:
 Backtrace omitted. Run with RUST_BACKTRACE=1 environment variable to display it.
 Run with RUST_BACKTRACE=full to include source snippets.    
 2025-12-05T03:50:58.114170Z  INFO atmb_us_physical: saving records to [result/mailboxes.csv]    
+2025-12-05T14:38:48.493440Z  WARN atmb_us_physical::utils: retrying for the 2 time    
+2025-12-05T14:38:48.575151Z  WARN atmb_us_physical::utils: retrying for the 2 time    
+2025-12-05T14:38:48.867024Z  WARN atmb_us_physical::utils: retrying for the 2 time    
+2025-12-05T14:38:50.399648Z  WARN atmb_us_physical::utils: retrying for the 3 time    
+2025-12-05T14:38:50.432806Z  WARN atmb_us_physical::utils: retrying for the 3 time    
+2025-12-05T14:38:50.972824Z  WARN atmb_us_physical::utils: retrying for the 3 time    
+2025-12-05T14:38:52.543270Z  WARN atmb_us_physical::utils: retrying for the 4 time    
+2025-12-05T14:38:52.577360Z  WARN atmb_us_physical::smarty: Smarty client [0] failed: 
+   0: [91msmarty http error: 402 Payment Required - {"errors":[{"id":1588026162,"message":"Active subscription required (1588026162): The optional license value supplied (if any) was valid and understood, but the account does not have the necessary active subscription to allow this operation to continue."}]}[0m
+
+Location:
+   [35msrc/smarty.rs[0m:[35m194[0m
+
+Backtrace omitted. Run with RUST_BACKTRACE=1 environment variable to display it.
+Run with RUST_BACKTRACE=full to include source snippets.    
+2025-12-05T14:38:53.010719Z  WARN atmb_us_physical::utils: retrying for the 4 time    
+2025-12-05T14:38:53.041395Z  WARN atmb_us_physical::smarty: Smarty client [0] failed: 
+   0: [91msmarty http error: 402 Payment Required - {"errors":[{"id":1588026162,"message":"Active subscription required (1588026162): The optional license value supplied (if any) was valid and understood, but the account does not have the necessary active subscription to allow this operation to continue."}]}[0m
+
+Location:
+   [35msrc/smarty.rs[0m:[35m194[0m
+
+Backtrace omitted. Run with RUST_BACKTRACE=1 environment variable to display it.
+Run with RUST_BACKTRACE=full to include source snippets.    
+2025-12-05T14:38:53.218778Z  WARN atmb_us_physical::utils: retrying for the 4 time    
+2025-12-05T14:38:53.248531Z  WARN atmb_us_physical::smarty: Smarty client [2] failed: 
+   0: [91msmarty http error: 402 Payment Required - {"errors":[{"id":1588026162,"message":"Active subscription required (1588026162): The optional license value supplied (if any) was valid and understood, but the account does not have the necessary active subscription to allow this operation to continue."}]}[0m
+
+Location:
+   [35msrc/smarty.rs[0m:[35m194[0m
+
+Backtrace omitted. Run with RUST_BACKTRACE=1 environment variable to display it.
+Run with RUST_BACKTRACE=full to include source snippets.    
+2025-12-05T14:38:53.420176Z  WARN atmb_us_physical::utils: retrying for the 2 time    
+2025-12-05T14:38:53.690125Z  WARN atmb_us_physical::utils: retrying for the 2 time    
+2025-12-05T14:38:54.604092Z  WARN atmb_us_physical::utils: retrying for the 3 time    
+2025-12-05T14:38:54.778534Z  WARN atmb_us_physical::utils: retrying for the 2 time    
+2025-12-05T14:38:55.219065Z  WARN atmb_us_physical::utils: retrying for the 3 time    
+2025-12-05T14:38:55.897356Z  WARN atmb_us_physical::utils: retrying for the 3 time    
+2025-12-05T14:38:56.416983Z  WARN atmb_us_physical::utils: retrying for the 4 time    
+2025-12-05T14:38:56.449453Z  WARN atmb_us_physical::smarty: Smarty client [0] failed: 
+   0: [91msmarty http error: 402 Payment Required - {"errors":[{"id":1588026162,"message":"Active subscription required (1588026162): The optional license value supplied (if any) was valid and understood, but the account does not have the necessary active subscription to allow this operation to continue."}]}[0m
+
+Location:
+   [35msrc/smarty.rs[0m:[35m194[0m
+
+Backtrace omitted. Run with RUST_BACKTRACE=1 environment variable to display it.
+Run with RUST_BACKTRACE=full to include source snippets.    
+2025-12-05T14:38:57.014412Z  WARN atmb_us_physical::utils: retrying for the 4 time    
+2025-12-05T14:38:57.044819Z  WARN atmb_us_physical::smarty: Smarty client [2] failed: 
+   0: [91msmarty http error: 402 Payment Required - {"errors":[{"id":1588026162,"message":"Active subscription required (1588026162): The optional license value supplied (if any) was valid and understood, but the account does not have the necessary active subscription to allow this operation to continue."}]}[0m
+
+Location:
+   [35msrc/smarty.rs[0m:[35m194[0m
+
+Backtrace omitted. Run with RUST_BACKTRACE=1 environment variable to display it.
+Run with RUST_BACKTRACE=full to include source snippets.    
+2025-12-05T14:38:57.925248Z  WARN atmb_us_physical::utils: retrying for the 2 time    
+2025-12-05T14:38:58.098041Z  WARN atmb_us_physical::utils: retrying for the 2 time    
+2025-12-05T14:38:59.282829Z  WARN atmb_us_physical::utils: retrying for the 4 time    
+2025-12-05T14:38:59.313285Z  WARN atmb_us_physical::smarty: Smarty client [2] failed: 
+   0: [91msmarty http error: 402 Payment Required - {"errors":[{"id":1588026162,"message":"Active subscription required (1588026162): The optional license value supplied (if any) was valid and understood, but the account does not have the necessary active subscription to allow this operation to continue."}]}[0m
+
+Location:
+   [35msrc/smarty.rs[0m:[35m194[0m
+
+Backtrace omitted. Run with RUST_BACKTRACE=1 environment variable to display it.
+Run with RUST_BACKTRACE=full to include source snippets.    
+2025-12-05T14:38:59.393528Z  WARN atmb_us_physical::utils: retrying for the 3 time    
+2025-12-05T14:39:00.132778Z  WARN atmb_us_physical::utils: retrying for the 3 time    
+2025-12-05T14:39:00.331774Z  WARN atmb_us_physical::utils: retrying for the 2 time    
+2025-12-05T14:39:01.213204Z  WARN atmb_us_physical::utils: retrying for the 3 time    
+2025-12-05T14:39:01.306844Z  WARN atmb_us_physical::utils: retrying for the 4 time    
+2025-12-05T14:39:01.337439Z  WARN atmb_us_physical::smarty: Smarty client [0] failed: 
+   0: [91msmarty http error: 402 Payment Required - {"errors":[{"id":1588026162,"message":"Active subscription required (1588026162): The optional license value supplied (if any) was valid and understood, but the account does not have the necessary active subscription to allow this operation to continue."}]}[0m
+
+Location:
+   [35msrc/smarty.rs[0m:[35m194[0m
+
+Backtrace omitted. Run with RUST_BACKTRACE=1 environment variable to display it.
+Run with RUST_BACKTRACE=full to include source snippets.    
+2025-12-05T14:39:01.337473Z ERROR atmb_us_physical: cannot inquire address info for [Bessemer]: 
+   0: [91msmarty http error: 402 Payment Required - {"errors":[{"id":1588026162,"message":"Active subscription required (1588026162): The optional license value supplied (if any) was valid and understood, but the account does not have the necessary active subscription to allow this operation to continue."}]}[0m
+
+Location:
+   [35msrc/smarty.rs[0m:[35m194[0m
+
+Backtrace omitted. Run with RUST_BACKTRACE=1 environment variable to display it.
+Run with RUST_BACKTRACE=full to include source snippets.    
+2025-12-05T14:39:02.047645Z  WARN atmb_us_physical::utils: retrying for the 4 time    
+2025-12-05T14:39:02.079121Z  WARN atmb_us_physical::smarty: Smarty client [2] failed: 
+   0: [91msmarty http error: 402 Payment Required - {"errors":[{"id":1588026162,"message":"Active subscription required (1588026162): The optional license value supplied (if any) was valid and understood, but the account does not have the necessary active subscription to allow this operation to continue."}]}[0m
+
+Location:
+   [35msrc/smarty.rs[0m:[35m194[0m
+
+Backtrace omitted. Run with RUST_BACKTRACE=1 environment variable to display it.
+Run with RUST_BACKTRACE=full to include source snippets.    
+2025-12-05T14:39:02.570684Z  WARN atmb_us_physical::utils: retrying for the 2 time    
+2025-12-05T14:39:02.835675Z  WARN atmb_us_physical::utils: retrying for the 4 time    
+2025-12-05T14:39:02.869481Z  WARN atmb_us_physical::smarty: Smarty client [0] failed: 
+   0: [91msmarty http error: 402 Payment Required - {"errors":[{"id":1588026162,"message":"Active subscription required (1588026162): The optional license value supplied (if any) was valid and understood, but the account does not have the necessary active subscription to allow this operation to continue."}]}[0m
+
+Location:
+   [35msrc/smarty.rs[0m:[35m194[0m
+
+Backtrace omitted. Run with RUST_BACKTRACE=1 environment variable to display it.
+Run with RUST_BACKTRACE=full to include source snippets.    
+2025-12-05T14:39:03.334275Z  WARN atmb_us_physical::utils: retrying for the 2 time    
+2025-12-05T14:39:03.461879Z  WARN atmb_us_physical::utils: retrying for the 3 time    
+2025-12-05T14:39:04.119883Z  WARN atmb_us_physical::utils: retrying for the 2 time    
+2025-12-05T14:39:04.895071Z  WARN atmb_us_physical::utils: retrying for the 4 time    
+2025-12-05T14:39:04.925926Z  WARN atmb_us_physical::smarty: Smarty client [2] failed: 
+   0: [91msmarty http error: 402 Payment Required - {"errors":[{"id":1588026162,"message":"Active subscription required (1588026162): The optional license value supplied (if any) was valid and understood, but the account does not have the necessary active subscription to allow this operation to continue."}]}[0m
+
+Location:
+   [35msrc/smarty.rs[0m:[35m194[0m
+
+Backtrace omitted. Run with RUST_BACKTRACE=1 environment variable to display it.
+Run with RUST_BACKTRACE=full to include source snippets.    
+2025-12-05T14:39:05.162387Z  WARN atmb_us_physical::utils: retrying for the 3 time    
+2025-12-05T14:39:06.307665Z  WARN atmb_us_physical::utils: retrying for the 3 time    
+2025-12-05T14:39:06.961941Z  WARN atmb_us_physical::utils: retrying for the 4 time    
+2025-12-05T14:39:06.993554Z  WARN atmb_us_physical::smarty: Smarty client [0] failed: 
+   0: [91msmarty http error: 402 Payment Required - {"errors":[{"id":1588026162,"message":"Active subscription required (1588026162): The optional license value supplied (if any) was valid and understood, but the account does not have the necessary active subscription to allow this operation to continue."}]}[0m
+
+Location:
+   [35msrc/smarty.rs[0m:[35m194[0m
+
+Backtrace omitted. Run with RUST_BACKTRACE=1 environment variable to display it.
+Run with RUST_BACKTRACE=full to include source snippets.    
+2025-12-05T14:39:09.470964Z  WARN atmb_us_physical::utils: retrying for the 4 time    
+2025-12-05T14:39:09.503396Z  WARN atmb_us_physical::smarty: Smarty client [2] failed: 
+   0: [91msmarty http error: 402 Payment Required - {"errors":[{"id":1588026162,"message":"Active subscription required (1588026162): The optional license value supplied (if any) was valid and understood, but the account does not have the necessary active subscription to allow this operation to continue."}]}[0m
+
+Location:
+   [35msrc/smarty.rs[0m:[35m194[0m
+
+Backtrace omitted. Run with RUST_BACKTRACE=1 environment variable to display it.
+Run with RUST_BACKTRACE=full to include source snippets.    
